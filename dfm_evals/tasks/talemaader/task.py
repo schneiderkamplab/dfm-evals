@@ -13,6 +13,7 @@ from zipfile import ZipFile
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
+from inspect_ai.model import get_model
 from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import generate
 
@@ -41,6 +42,7 @@ DATASET_NAME = TASK_NAME
 def _talemaader_task(
     split: str = DEFAULT_SPLIT,
     judge_model: str | None = None,
+    judge_base_url: str | None = None,
     judge_model_role: str | None = "grader",
     source_zip_url: str = SOURCE_ZIP_URL,
     source_csv_name: str = SOURCE_CSV_NAME,
@@ -55,6 +57,8 @@ def _talemaader_task(
         raise ValueError("Either `judge_model` or `judge_model_role` must be provided.")
     if judge_model is not None and not judge_model.strip():
         raise ValueError("`judge_model` must be None or a non-empty string.")
+    if judge_base_url is not None and not judge_base_url.strip():
+        raise ValueError("`judge_base_url` must be None or a non-empty string.")
     if not source_zip_url.strip():
         raise ValueError("`source_zip_url` must be a non-empty string.")
     if not source_csv_name.strip():
@@ -70,6 +74,11 @@ def _talemaader_task(
         seed=seed,
         limit=limit,
     )
+    judge_model_spec = (
+        get_model(judge_model, base_url=judge_base_url, memoize=False)
+        if judge_model is not None and judge_base_url is not None
+        else judge_model
+    )
     return Task(
         dataset=dataset,
         solver=[generate(max_tokens=max_gen_toks)],
@@ -77,7 +86,7 @@ def _talemaader_task(
             template=JUDGE_TEMPLATE_DA,
             instructions=JUDGE_INSTRUCTIONS_DA,
             partial_credit=True,
-            model=judge_model,
+            model=judge_model_spec,
             model_role=judge_model_role,
         ),
     )
@@ -87,6 +96,7 @@ def _talemaader_task(
 def generative_talemaader(
     split: str = DEFAULT_SPLIT,
     judge_model: str | None = None,
+    judge_base_url: str | None = None,
     judge_model_role: str | None = "grader",
     source_zip_url: str = SOURCE_ZIP_URL,
     source_csv_name: str = SOURCE_CSV_NAME,
@@ -98,6 +108,7 @@ def generative_talemaader(
     return _talemaader_task(
         split=split,
         judge_model=judge_model,
+        judge_base_url=judge_base_url,
         judge_model_role=judge_model_role,
         source_zip_url=source_zip_url,
         source_csv_name=source_csv_name,

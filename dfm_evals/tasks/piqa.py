@@ -36,7 +36,6 @@ Mulighed B:
 
 Svar kun med A eller B."""
 
-_RE_FIRST_CHOICE = re.compile(r"^\s*([AaBb])\b")
 _RE_ANY_CHOICE = re.compile(r"\b([AaBb])\b")
 
 
@@ -209,10 +208,9 @@ def _extract_letter_choice(text: str) -> str | None:
     if not text:
         return None
 
-    for pattern in (_RE_FIRST_CHOICE, _RE_ANY_CHOICE):
-        match = pattern.search(text)
-        if match is not None:
-            return match.group(1).upper()
+    choices = [match.group(1).upper() for match in _RE_ANY_CHOICE.finditer(text)]
+    if len(set(choices)) == 1:
+        return choices[0]
 
     return None
 

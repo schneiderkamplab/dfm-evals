@@ -114,7 +114,7 @@ def _resolve_hf_token() -> str | bool:
         return token
     if (token := os.getenv("HUGGINGFACE_API_KEY")):
         return token
-    return True
+    return False
 
 
 def _normalize_record(raw_record: Mapping[str, Any]) -> dict[str, Any]:
@@ -122,6 +122,13 @@ def _normalize_record(raw_record: Mapping[str, Any]) -> dict[str, Any]:
     answer = _normalize_answer_label(_require_string(raw_record, "answer"))
 
     raw_options = raw_record.get("options")
+    if raw_options is None:
+        raw_options = [
+            raw_record.get("option_a"),
+            raw_record.get("option_b"),
+            raw_record.get("option_c"),
+            raw_record.get("option_d"),
+        ]
     if not isinstance(raw_options, Sequence) or isinstance(raw_options, (str, bytes)):
         raise ValueError("Record field 'options' must be a sequence of option strings.")
 
