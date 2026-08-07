@@ -6,6 +6,7 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import Sample, hf_dataset
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState, generate
+from ._sharding import shard_samples
 
 DEFAULT_HUGGING_FACE_ID = "giannor/dala_gen_v3"
 DEFAULT_DATASET_NAME = "gec_dala"
@@ -51,6 +52,8 @@ def gec_dala(
     seed: int | None = None,
     limit: int | None = None,
     preferred_metric: str | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     # Exporters can read this from recorded task_args to override display defaults.
     _ = preferred_metric
@@ -84,8 +87,16 @@ def gec_dala(
     if dataset_name:
         dataset_kwargs["name"] = dataset_name
 
+    dataset = _load_hf_dataset(dataset_kwargs)
     return Task(
-        dataset=_load_hf_dataset(dataset_kwargs),
+        dataset=shard_samples(
+            dataset,
+            name="gec-dala",
+            location=f"{hugging_face_id}:{resolved_split}",
+            num_shards=num_shards,
+            shard_index=shard_index,
+            shuffled=shuffle,
+        ),
         solver=[generate(max_tokens=max_gen_toks, temperature=temperature)],
         scorer=[gec_dala_scorer()],
     )

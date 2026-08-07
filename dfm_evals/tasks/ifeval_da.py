@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import numpy as np
 from inspect_ai import Task, task
-from inspect_ai.dataset import Sample, hf_dataset
+from inspect_ai.dataset import MemoryDataset, Sample, hf_dataset
 from inspect_ai.scorer import (
     Metric,
     SampleScore,
@@ -34,23 +34,43 @@ def ifeval_da(
     shuffle: bool = False,
     seed: int | None = None,
     limit: int | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     _require_optional_dependency(
         package="instruction_following_eval",
         task_name="ifeval-da",
         install_url=INSTALL_URL,
     )
+    if num_shards < 1:
+        raise ValueError("`num_shards` must be >= 1.")
+    if shard_index < 0 or shard_index >= num_shards:
+        raise ValueError("`shard_index` must satisfy 0 <= shard_index < num_shards.")
+
+    dataset = hf_dataset(
+        path=dataset_path,
+        split=split,
+        sample_fields=record_to_sample,
+        auto_id=True,
+        shuffle=shuffle,
+        seed=seed,
+        limit=limit,
+    )
+    if num_shards > 1:
+        samples = [
+            sample
+            for index, sample in enumerate(dataset)
+            if index % num_shards == shard_index
+        ]
+        dataset = MemoryDataset(
+            samples=samples,
+            name=f"ifeval-da-shard-{shard_index}-of-{num_shards}",
+            location=f"{dataset_path}:{split}",
+            shuffled=shuffle,
+        )
 
     return Task(
-        dataset=hf_dataset(
-            path=dataset_path,
-            split=split,
-            sample_fields=record_to_sample,
-            auto_id=True,
-            shuffle=shuffle,
-            seed=seed,
-            limit=limit,
-        ),
+        dataset=dataset,
         solver=[generate()],
         scorer=instruction_following(),
     )

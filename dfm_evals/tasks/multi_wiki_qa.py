@@ -10,6 +10,7 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample, hf_dataset
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState, generate
+from ._sharding import shard_samples
 
 PUBLIC_SOURCE_DATASET_ID = "oliverkinch/multi-wiki-qa-high-quality-subset"
 DEFAULT_LANGUAGE = "da"
@@ -55,6 +56,8 @@ def multi_wiki_qa(
     shuffle: bool = False,
     seed: int | None = None,
     limit: int | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     language = language.strip().lower()
     if not language:
@@ -95,7 +98,14 @@ def multi_wiki_qa(
         )
 
     return Task(
-        dataset=dataset,
+        dataset=shard_samples(
+            dataset,
+            name=f"MultiWikiQA-{language}",
+            location=path or public_source_dataset_id,
+            num_shards=num_shards,
+            shard_index=shard_index,
+            shuffled=shuffle,
+        ),
         solver=[generate(max_tokens=max_gen_toks)],
         scorer=multi_wiki_qa_scorer(),
     )

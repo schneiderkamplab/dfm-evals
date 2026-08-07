@@ -22,6 +22,7 @@ from inspect_ai.scorer import (
     scorer,
 )
 from inspect_ai.solver import TaskState, generate
+from ._sharding import shard_samples
 
 DEFAULT_DATASET_ID = "alexandrainst/danish-citizen-tests-updated"
 DEFAULT_SPLIT = "test"
@@ -54,6 +55,8 @@ def danish_citizen_tests(
     seed: int | None = None,
     limit: int | None = None,
     preferred_metric: str | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     # Exporters can read this from recorded task_args to override display defaults.
     _ = preferred_metric
@@ -72,10 +75,13 @@ def danish_citizen_tests(
         samples = samples[:limit]
 
     return Task(
-        dataset=MemoryDataset(
+        dataset=shard_samples(
             samples=samples,
             name="Danish Citizen Tests",
             location=dataset_id,
+            num_shards=num_shards,
+            shard_index=shard_index,
+            shuffled=shuffle,
         ),
         solver=[generate(max_tokens=max_gen_toks, temperature=temperature)],
         scorer=danish_citizen_tests_scorer(),

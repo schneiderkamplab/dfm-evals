@@ -20,6 +20,8 @@ dependencies = [
   "sacrebleu>=2.5.1",
   "trueskill>=0.4.5",
   "typing_extensions>=4.0",
+  "rouge-score>=0.1.2",
+  "bert-score>=0.3.13",
 ]
 
 [project.optional-dependencies]

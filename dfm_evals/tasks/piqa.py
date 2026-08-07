@@ -19,6 +19,7 @@ from inspect_ai.scorer import (
 )
 from inspect_ai.solver import TaskState, generate
 from typing_extensions import NotRequired, TypedDict
+from ._sharding import shard_samples
 
 DEFAULT_DATASET_PATH = Path(__file__).parent / "piqa" / "piqa-dan.json"
 
@@ -53,6 +54,9 @@ def piqa(
     shuffle: bool = False,
     seed: int | None = None,
     limit: int | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
+    max_gen_toks: int = 8,
 ) -> Task:
     path = Path(dataset_path)
     records = _load_records(path)
@@ -64,12 +68,15 @@ def piqa(
         samples = samples[:limit]
 
     return Task(
-        dataset=MemoryDataset(
+        dataset=shard_samples(
             samples=samples,
             name="PIQA-da",
             location=str(path),
+            num_shards=num_shards,
+            shard_index=shard_index,
+            shuffled=shuffle,
         ),
-        solver=[generate()],
+        solver=[generate(max_tokens=max_gen_toks)],
         scorer=piqa_scorer(),
     )
 

@@ -9,6 +9,7 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import Sample, hf_dataset
 from inspect_ai.scorer import Metric, SampleScore, Score, Scorer, Target, metric, scorer
 from inspect_ai.solver import TaskState, generate
+from ._sharding import shard_samples
 
 DEFAULT_HUGGING_FACE_ID = "giannor/dala"
 DEFAULT_SPLIT = "test"
@@ -51,6 +52,8 @@ def dala(
     seed: int | None = None,
     limit: int | None = None,
     preferred_metric: str | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     # Exporters can read this from recorded task_args to override display defaults.
     _ = preferred_metric
@@ -60,8 +63,7 @@ def dala(
 
     normalized_split = _normalize_split_name(split)
 
-    return Task(
-        dataset=hf_dataset(
+    dataset = hf_dataset(
             path=hugging_face_id,
             split=normalized_split,
             sample_fields=lambda record: record_to_sample(
@@ -74,6 +76,15 @@ def dala(
             shuffle=shuffle,
             seed=seed,
             limit=limit,
+        )
+    return Task(
+        dataset=shard_samples(
+            dataset,
+            name="dala",
+            location=f"{hugging_face_id}:{normalized_split}",
+            num_shards=num_shards,
+            shard_index=shard_index,
+            shuffled=shuffle,
         ),
         solver=[generate(max_tokens=max_gen_toks, temperature=temperature)],
         scorer=dala_scorer(),

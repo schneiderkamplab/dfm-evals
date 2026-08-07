@@ -18,6 +18,7 @@ from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import generate
 
 from dfm_evals.tasks.talemaader.prompts import JUDGE_INSTRUCTIONS_DA, JUDGE_TEMPLATE_DA
+from dfm_evals.tasks._sharding import shard_samples
 
 DEFAULT_SPLIT = "test"
 DEFAULT_SPLIT_SEED = 4242
@@ -50,6 +51,8 @@ def _talemaader_task(
     shuffle: bool = False,
     seed: int | None = None,
     limit: int | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     if not split.strip():
         raise ValueError("`split` must be a non-empty string.")
@@ -73,6 +76,8 @@ def _talemaader_task(
         shuffle=shuffle,
         seed=seed,
         limit=limit,
+        num_shards=num_shards,
+        shard_index=shard_index,
     )
     judge_model_spec = (
         get_model(judge_model, base_url=judge_base_url, memoize=False)
@@ -104,6 +109,8 @@ def generative_talemaader(
     shuffle: bool = False,
     seed: int | None = None,
     limit: int | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     return _talemaader_task(
         split=split,
@@ -116,6 +123,8 @@ def generative_talemaader(
         shuffle=shuffle,
         seed=seed,
         limit=limit,
+        num_shards=num_shards,
+        shard_index=shard_index,
     )
 
 
@@ -127,6 +136,8 @@ def _memory_dataset(
     shuffle: bool,
     seed: int | None,
     limit: int | None,
+    num_shards: int,
+    shard_index: int,
 ) -> MemoryDataset:
     split_name = _normalize_split_name(split)
     records = _load_source_records(
@@ -141,10 +152,13 @@ def _memory_dataset(
     if limit is not None:
         samples = samples[:limit]
 
-    return MemoryDataset(
+    return shard_samples(
         samples=samples,
         name=DATASET_NAME,
         location=source_zip_url,
+        num_shards=num_shards,
+        shard_index=shard_index,
+        shuffled=shuffle,
     )
 
 

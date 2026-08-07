@@ -8,6 +8,7 @@ from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.solver import generate
 
 from ..scorers.chrf import chrf3pp
+from ._sharding import shard_samples
 
 DEFAULT_DATASET_ID = "synquid/wmt24pp"
 DEFAULT_SUBSET = "en-da_DK"
@@ -34,6 +35,8 @@ def wmt24pp_en_da(
     temperature: float = DEFAULT_TEMPERATURE,
     limit: int | None = None,
     preferred_metric: str | None = None,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     # Exporters can read this from recorded task_args to override display defaults.
     _ = preferred_metric
@@ -58,10 +61,12 @@ def wmt24pp_en_da(
         samples = samples[:limit]
 
     return Task(
-        dataset=MemoryDataset(
+        dataset=shard_samples(
             samples=samples,
             name="WMT24++ en-da",
             location=f"{dataset_id}:{subset}",
+            num_shards=num_shards,
+            shard_index=shard_index,
         ),
         solver=[generate(max_tokens=max_gen_toks, temperature=temperature)],
         scorer=chrf3pp(),

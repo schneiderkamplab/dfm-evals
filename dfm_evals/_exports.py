@@ -13,6 +13,7 @@ REGISTRY_EXPORTS = {
     "bfcl_da": "dfm_evals.tasks.bfcl.bfcl:bfcl_da",
     "ifeval_da": "dfm_evals.tasks.ifeval_da:ifeval_da",
     "piqa": "dfm_evals.tasks.piqa:piqa",
+    "humaneval": "dfm_evals.tasks.code:humaneval",
     "ruler": "dfm_evals.tasks.ruler.task:ruler",
     "gleu": "dfm_evals.scorers.gleu:gleu",
     "comet": "dfm_evals.scorers.comet:comet",
