@@ -251,6 +251,144 @@ sets:
       - "4242"
       - --temperature
       - "0"
+  mc9:
+    description: FlexOlmo MC9 multiple-choice suite (9 tasks, 0-shot)
+    tasks:
+      - inspect_evals/arc_easy
+      - inspect_evals/arc_challenge
+      - inspect_evals/boolq
+      - inspect_evals/commonsense_qa
+      - inspect_evals/hellaswag
+      - inspect_evals/piqa
+      - name: inspect_evals/winogrande
+        args:
+          - -T
+          - fewshot=false
+      - dfm_evals/openbookqa
+      - dfm_evals/socialiqa
+    args:
+      - --model
+      - "{{target_model}}"
+      - --sample-shuffle
+      - "4242"
+      - --temperature
+      - "0"
+      - --max-tokens
+      - "64"
+  gen5:
+    description: FlexOlmo Gen5 generative QA suite (5 tasks, 0-shot)
+    tasks:
+      - dfm_evals/squad
+      - name: inspect_evals/drop
+        args:
+          - -T
+          - fewshot=false
+      - dfm_evals/coqa
+      - dfm_evals/nq_open
+      - dfm_evals/triviaqa
+    args:
+      - --model
+      - "{{target_model}}"
+      - --sample-shuffle
+      - "4242"
+      - --temperature
+      - "0"
+      - --max-tokens
+      - "128"
+  code4:
+    description: FlexOlmo Code4 code generation suite (4 tasks)
+    tasks:
+      - name: dfm_evals/humaneval
+        args:
+          - -T
+          - sandbox=local
+      - name: dfm_evals/humaneval_plus
+        args:
+          - -T
+          - sandbox=local
+      - name: dfm_evals/mbpp
+        args:
+          - -T
+          - sandbox=local
+      - name: dfm_evals/mbpp_plus
+        args:
+          - -T
+          - sandbox=local
+    args:
+      - --model
+      - "{{target_model}}"
+      - --sample-shuffle
+      - "4242"
+      - --temperature
+      - "0"
+      - --max-tokens
+      - "1024"
+  flexolmo_comparison:
+    description: Full FlexOlmo comparison suite (MC9 + Gen5 + Code4 + MMLU-Pro + AGIEval + BBH)
+    tasks:
+      - inspect_evals/arc_easy
+      - inspect_evals/arc_challenge
+      - inspect_evals/boolq
+      - inspect_evals/commonsense_qa
+      - inspect_evals/hellaswag
+      - inspect_evals/piqa
+      - name: inspect_evals/winogrande
+        args:
+          - -T
+          - fewshot=false
+      - dfm_evals/openbookqa
+      - dfm_evals/socialiqa
+      - dfm_evals/squad
+      - name: inspect_evals/drop
+        args:
+          - -T
+          - fewshot=false
+      - dfm_evals/coqa
+      - dfm_evals/nq_open
+      - dfm_evals/triviaqa
+      - name: dfm_evals/humaneval
+        args:
+          - -T
+          - sandbox=local
+          - --max-tokens
+          - "1024"
+      - name: dfm_evals/humaneval_plus
+        args:
+          - -T
+          - sandbox=local
+          - --max-tokens
+          - "1024"
+      - name: dfm_evals/mbpp
+        args:
+          - -T
+          - sandbox=local
+          - --max-tokens
+          - "1024"
+      - name: dfm_evals/mbpp_plus
+        args:
+          - -T
+          - sandbox=local
+          - --max-tokens
+          - "1024"
+      - name: dfm_evals/mmlu_pro
+        args:
+          - --max-tokens
+          - "64"
+      - name: dfm_evals/agieval
+        args:
+          - --max-tokens
+          - "256"
+      - name: dfm_evals/bbh
+        args:
+          - --max-tokens
+          - "512"
+    args:
+      - --model
+      - "{{target_model}}"
+      - --sample-shuffle
+      - "4242"
+      - --temperature
+      - "0"
   ruler_smoke:
     description: Minimal RULER smoke suite for long-context synthetic retrieval and tracing
     tasks:
