@@ -186,3 +186,20 @@ def test_ruler_task_limit_truncates_generated_dataset() -> None:
 
     assert task.dataset is not None
     assert len(list(task.dataset)) == 2
+
+
+def test_ruler_task_shards_deterministically() -> None:
+    task = ruler(
+        variant="niah_single_1",
+        num_samples=9,
+        max_seq_length=512,
+        tokenizer_backend="simple",
+        num_shards=4,
+        shard_index=2,
+    )
+
+    assert task.dataset is not None
+    assert [sample.id for sample in task.dataset] == [
+        "niah_single_1-2",
+        "niah_single_1-6",
+    ]

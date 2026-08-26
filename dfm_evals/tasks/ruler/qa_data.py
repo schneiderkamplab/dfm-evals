@@ -11,7 +11,10 @@ from typing import Literal
 QADatasetName = Literal["squad", "hotpotqa"]
 
 SQUAD_URL = "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
-HOTPOTQA_URL = "http://curtis.ml.cmu.edu/datasets/hotpot/hotpot_dev_distractor_v1.json"
+HOTPOTQA_URL = (
+    "https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/"
+    "refs%2Fconvert%2Fparquet/distractor/validation/0000.parquet"
+)
 
 
 @dataclass(frozen=True)
@@ -36,15 +39,16 @@ class QABundle:
 
 @lru_cache(maxsize=4)
 def load_qa_bundle(dataset: QADatasetName) -> QABundle:
-    cache_file = _cache_dir() / f"{dataset}.json"
+    suffix = ".parquet" if dataset == "hotpotqa" else ".json"
+    cache_file = _cache_dir() / f"{dataset}{suffix}"
     if not cache_file.is_file():
         _download_dataset(dataset, cache_file)
 
-    payload = json.loads(cache_file.read_text(encoding="utf-8"))
     if dataset == "squad":
+        payload = json.loads(cache_file.read_text(encoding="utf-8"))
         return _parse_squad_bundle(payload)
     if dataset == "hotpotqa":
-        return _parse_hotpotqa_bundle(payload)
+        return _parse_hotpotqa_parquet(cache_file)
     raise ValueError(f"Unsupported QA dataset {dataset!r}")
 
 
@@ -68,7 +72,9 @@ def _download_dataset(dataset: QADatasetName, target: Path) -> None:
     )
     with urllib.request.urlopen(request) as response:
         data = response.read()
-    target.write_bytes(data)
+    temporary = target.with_suffix(f"{target.suffix}.part")
+    temporary.write_bytes(data)
+    temporary.replace(target)
 
 
 def _parse_squad_bundle(payload: object) -> QABundle:
@@ -195,6 +201,66 @@ def _parse_hotpotqa_bundle(payload: object) -> QABundle:
                 documents=example_documents,
             )
         )
+
+    return QABundle(examples=examples, distractor_documents=documents)
+
+
+def _parse_hotpotqa_parquet(path: Path) -> QABundle:
+    try:
+        import pyarrow.parquet as parquet
+    except ImportError as exc:
+        raise RuntimeError("HotpotQA RULER tasks require pyarrow.") from exc
+
+    table = parquet.read_table(
+        path,
+        columns=["id", "question", "answer", "context"],
+    )
+    examples: list[QAExample] = []
+    documents: list[QADocument] = []
+
+    for example_index, item in enumerate(table.to_pylist()):
+        question = _clean_text(item.get("question"))
+        answer = _clean_text(item.get("answer"))
+        context = item.get("context")
+        if not question or not answer or not isinstance(context, dict):
+            continue
+
+        titles = context.get("title")
+        sentence_groups = context.get("sentences")
+        if not isinstance(titles, list) or not isinstance(sentence_groups, list):
+            continue
+
+        example_documents: list[QADocument] = []
+        for document_index, (raw_title, raw_sentences) in enumerate(
+            zip(titles, sentence_groups, strict=False)
+        ):
+            title = _clean_text(raw_title) or f"Hotpot Document {document_index + 1}"
+            if not isinstance(raw_sentences, list):
+                continue
+            sentences = [
+                sentence.strip()
+                for sentence in raw_sentences
+                if isinstance(sentence, str) and sentence.strip()
+            ]
+            if not sentences:
+                continue
+
+            document = QADocument(
+                id=f"hotpot:{example_index}:{document_index}",
+                title=title,
+                text=" ".join(sentences),
+            )
+            example_documents.append(document)
+            documents.append(document)
+
+        if example_documents:
+            examples.append(
+                QAExample(
+                    question=question,
+                    answers=[answer],
+                    documents=example_documents,
+                )
+            )
 
     return QABundle(examples=examples, distractor_documents=documents)
 

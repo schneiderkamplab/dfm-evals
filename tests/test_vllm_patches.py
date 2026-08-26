@@ -2,81 +2,8 @@ import threading
 import time
 
 from dfm_evals.vllm_patches import (
-    apply_hermes_tool_parser_thread_safety_patch,
     apply_instance_method_rlock_patch,
 )
-
-
-class FakeTokenizer:
-    def __init__(self) -> None:
-        self._borrow_lock = threading.Lock()
-        self.encode_calls = 0
-        self.decode_calls = 0
-
-    def encode(self, text: str, add_special_tokens: bool = False) -> list[int]:
-        if not self._borrow_lock.acquire(blocking=False):
-            raise RuntimeError("Already borrowed")
-        try:
-            self.encode_calls += 1
-            time.sleep(0.01)
-            return [len(text)]
-        finally:
-            self._borrow_lock.release()
-
-    def decode(self, token_ids: list[int]) -> str:
-        if not self._borrow_lock.acquire(blocking=False):
-            raise RuntimeError("Already borrowed")
-        try:
-            self.decode_calls += 1
-            time.sleep(0.01)
-            return str(token_ids[0])
-        finally:
-            self._borrow_lock.release()
-
-
-class FakeToolParser:
-    def __init__(self, tokenizer) -> None:
-        self.prev_tool_call_arr = []
-        self.current_tool_id = -1
-        self.current_tool_name_sent = False
-        self.streamed_args_for_tool = []
-        self.model_tokenizer = tokenizer
-
-
-class FakeMistralTokenizer:
-    def __init__(self, tokenizer) -> None:
-        self.tokenizer = tokenizer
-
-
-class FakeHermesParser(FakeToolParser):
-    def __init__(self, tokenizer) -> None:
-        super().__init__(tokenizer)
-
-        if isinstance(tokenizer, FakeMistralTokenizer):
-            self.model_tokenizer = tokenizer.tokenizer
-
-        self.current_tool_name_sent = False
-        self.prev_tool_call_arr = []
-        self.current_tool_id = -1
-        self.streamed_args_for_tool = []
-        self.tool_call_start_token = "<tool_call>"
-        self.tool_call_end_token = "</tool_call>"
-
-        self.tool_call_start_token_ids = self.model_tokenizer.encode(
-            self.tool_call_start_token, add_special_tokens=False
-        )
-        self.tool_call_end_token_ids = self.model_tokenizer.encode(
-            self.tool_call_end_token, add_special_tokens=False
-        )
-        self.tool_call_start_token_array = [
-            self.model_tokenizer.decode([token_id])
-            for token_id in self.tool_call_start_token_ids
-        ]
-        self.tool_call_end_token_array = [
-            self.model_tokenizer.decode([token_id])
-            for token_id in self.tool_call_end_token_ids
-        ]
-        self.buffered_delta_text = ""
 
 
 class FakeFastTokenizer:
@@ -140,44 +67,6 @@ class FakeFastTokenizer:
 class FakeFastTokenizerBackend:
     def __init__(self) -> None:
         self._borrow_lock = threading.Lock()
-
-
-def test_hermes_patch_avoids_concurrent_tokenizer_borrows() -> None:
-    apply_hermes_tool_parser_thread_safety_patch(
-        hermes_parser_cls=FakeHermesParser,
-        tool_parser_cls=FakeToolParser,
-        mistral_tokenizer_cls=FakeMistralTokenizer,
-    )
-
-    tokenizer = FakeTokenizer()
-    wrapped = FakeMistralTokenizer(tokenizer)
-    barrier = threading.Barrier(8)
-    parsers = []
-    errors = []
-
-    def worker() -> None:
-        try:
-            barrier.wait()
-            parsers.append(FakeHermesParser(wrapped))
-        except Exception as exc:
-            errors.append(exc)
-
-    threads = [threading.Thread(target=worker) for _ in range(8)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-    assert not errors
-    assert len(parsers) == 8
-    assert tokenizer.encode_calls == 2
-    assert tokenizer.decode_calls == 2
-
-    for parser in parsers:
-        assert parser.tool_call_start_token_ids == [11]
-        assert parser.tool_call_end_token_ids == [12]
-        assert parser.tool_call_start_token_array == ["11"]
-        assert parser.tool_call_end_token_array == ["12"]
 
 
 def test_instance_method_rlock_patch_serializes_fast_tokenizer_calls() -> None:

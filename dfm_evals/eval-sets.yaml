@@ -69,6 +69,10 @@ sets:
         args:
           - -T
           - max_gen_toks=32
+      - name: andersen-modernization
+        args:
+          - -T
+          - max_gen_toks=1536
       - name: inspect_evals/bfcl
         args:
           - --max-tokens

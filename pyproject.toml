@@ -10,7 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Company" }]
 dependencies = [
-  "datasets>=2.0",
+  "datasets>=5.0.1",
+  "langdetect>=1.0.9",
   "inspect_ai",
   "inspect-evals",
   "prime>=0.5.42",

@@ -7,6 +7,7 @@ from inspect_ai.dataset import MemoryDataset
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState, generate
 
+from .._sharding import shard_sequence
 from .generators import generate_samples
 from .presets import get_preset
 from .tokenizers import build_length_estimator
@@ -32,6 +33,8 @@ def ruler(
     limit: int | None = None,
     completion_tokens: int | None = None,
     context_buffer_tokens: int = DEFAULT_CONTEXT_BUFFER_TOKENS,
+    num_shards: int = 1,
+    shard_index: int = 0,
 ) -> Task:
     if max_seq_length < 128:
         raise ValueError("`max_seq_length` must be >= 128.")
@@ -67,6 +70,11 @@ def ruler(
         random.Random(seed).shuffle(samples)
     if limit is not None:
         samples = samples[:limit]
+    samples = shard_sequence(
+        samples,
+        num_shards=num_shards,
+        shard_index=shard_index,
+    )
 
     return Task(
         dataset=MemoryDataset(

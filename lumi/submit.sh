@@ -496,7 +496,9 @@ if [[ "$JUDGE_ENABLE_AUTO_TOOL_CHOICE" == "1" && -z "$JUDGE_TOOL_CALL_PARSER" ]]
 fi
 
 [[ -f "$SUBMIT_SCRIPT" ]] || die "submit script not found: $SUBMIT_SCRIPT"
-[[ -d "$OVERLAY_DIR" ]] || die "overlay dir not found: $OVERLAY_DIR"
+if [[ "$DRY_RUN" == "0" ]]; then
+  [[ -d "$OVERLAY_DIR" ]] || die "overlay dir not found: $OVERLAY_DIR"
+fi
 mkdir -p "$SLURM_LOG_DIR"
 
 label_model_ref="$TARGET_MODEL"

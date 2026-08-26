@@ -13,6 +13,7 @@ from inspect_ai.solver import TaskState, generate
 from rouge_score import rouge_scorer
 from sacrebleu.metrics import BLEU, CHRF
 from ._sharding import shard_samples
+from .long_context import _fit_prompt
 
 DEFAULT_GOVREPORT_DATASET_ID = "ccdv/govreport-summarization"
 DEFAULT_GOVREPORT_CONFIG = "document"
@@ -75,6 +76,88 @@ def govreport(
         dataset=shard_samples(
             samples=samples,
             name="GovReport",
+            location=f"{dataset_id}:{dataset_config}:{split}",
+            num_shards=num_shards,
+            shard_index=shard_index,
+        ),
+        solver=[generate(max_tokens=max_gen_toks, temperature=temperature)],
+        scorer=[
+            summarization_scorer(
+                include_bertscore=include_bertscore,
+                bertscore_model=bertscore_model,
+                bertscore_lang="en",
+                bertscore_device=bertscore_device,
+            )
+        ],
+    )
+
+
+@task(name="govreport_long")
+def govreport_long(
+    dataset_id: str = DEFAULT_GOVREPORT_DATASET_ID,
+    dataset_config: str = DEFAULT_GOVREPORT_CONFIG,
+    split: str = DEFAULT_GOVREPORT_SPLIT,
+    prompt_template: str = GOVREPORT_PROMPT_TEMPLATE,
+    min_report_chars: int = 24000,
+    max_report_chars: int = 30000,
+    max_gen_toks: int = 512,
+    max_samples: int | None = 512,
+    temperature: float = 0.0,
+    include_bertscore: bool = True,
+    bertscore_model: str = "xlm-roberta-large",
+    bertscore_device: str = "auto",
+    num_shards: int = 1,
+    shard_index: int = 0,
+) -> Task:
+    """Long-document GovReport subset for checkpoints with an extended context.
+
+    Character bounds are deliberate and recorded in the task metadata. They
+    select documents that are long enough to exercise an 8K-ish context while
+    keeping prompt plus generation within the configured serving limit.
+    """
+    if min_report_chars < 1 or max_report_chars < min_report_chars:
+        raise ValueError("GovReport long character bounds are invalid.")
+    candidates: list[tuple[int, str, str]] = []
+    for index, row in enumerate(
+        _load_hf_records(dataset_id=dataset_id, config=dataset_config, split=split)
+    ):
+        report = _require_string(row, "report")
+        if not min_report_chars <= len(report) <= max_report_chars:
+            continue
+        candidates.append((index, report, _require_string(row, "summary")))
+
+    # Stable source order makes shards and checkpoint comparisons reproducible.
+    if max_samples is not None:
+        candidates = candidates[:max_samples]
+    samples = [
+        Sample(
+            id=str(index),
+            input=_fit_prompt(
+                report,
+                prompt_template.split("{{document}}", 1)[0],
+                prompt_template.split("{{document}}", 1)[1],
+                max_gen_toks=max_gen_toks,
+            ),
+            target=[summary],
+            metadata={
+                "dataset_id": dataset_id,
+                "split": split,
+                "source_index": index,
+                "min_report_chars": min_report_chars,
+                "max_report_chars": max_report_chars,
+            },
+        )
+        for index, report, summary in candidates
+    ]
+    if not samples:
+        raise ValueError(
+            f"No GovReport {split} rows in [{min_report_chars}, {max_report_chars}] characters."
+        )
+
+    return Task(
+        dataset=shard_samples(
+            samples=samples,
+            name="GovReportLong",
             location=f"{dataset_id}:{dataset_config}:{split}",
             num_shards=num_shards,
             shard_index=shard_index,

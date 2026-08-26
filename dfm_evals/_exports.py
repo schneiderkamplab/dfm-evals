@@ -4,6 +4,7 @@ from importlib import import_module
 from pathlib import Path
 
 REGISTRY_EXPORTS = {
+    "andersen_modernization": "dfm_evals.tasks.andersen_modernization:andersen_modernization",
     "danish_citizen_tests": "dfm_evals.tasks.danish_citizen_tests:danish_citizen_tests",
     "generative_talemaader": "dfm_evals.tasks.talemaader.task:generative_talemaader",
     "multi_wiki_qa": "dfm_evals.tasks.multi_wiki_qa:multi_wiki_qa",
@@ -27,6 +28,13 @@ REGISTRY_EXPORTS = {
     "bbh": "dfm_evals.tasks.flexolmo:bbh",
     "squad": "dfm_evals.tasks.flexolmo:squad",
     "ruler": "dfm_evals.tasks.ruler.task:ruler",
+    "govreport_long": "dfm_evals.tasks.summarization:govreport_long",
+    "longbench_en": "dfm_evals.tasks.long_context:longbench_en",
+    "longalign": "dfm_evals.tasks.long_context:longalign",
+    "marathon": "dfm_evals.tasks.long_context:marathon",
+    "qmsum_cleaned": "dfm_evals.tasks.long_context:qmsum_cleaned",
+    "danish_summarization_eur_lex": "dfm_evals.tasks.long_context:danish_summarization_eur_lex",
+    "danish_summarization": "dfm_evals.tasks.long_context:danish_summarization",
     "gleu": "dfm_evals.scorers.gleu:gleu",
     "comet": "dfm_evals.scorers.comet:comet",
 }

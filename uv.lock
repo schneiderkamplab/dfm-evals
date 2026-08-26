@@ -961,7 +961,7 @@ wheels = [
 
 [[package]]
 name = "datasets"
-version = "4.6.1"
+version = "5.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
@@ -981,9 +981,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/94/eb81c6fe32e9b6ef92223141b5a553aeff2e9456968424a8533cbe88f476/datasets-4.6.1.tar.gz", hash = "sha256:140ce500bc41939ff6ce995702d66b1f4b2ee7f117bb9b07512fab6804d4070a", size = 593865, upload-time = "2026-02-27T23:26:49.482Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/5b/836516269d4f618efe621661cfb6f9acc57e6f95265db3efaee48a5ffe04/datasets-5.0.1.tar.gz", hash = "sha256:ce22bb851efd7494f08aad33b940803784434f6e77763d00679a0dc45fcf686a", size = 641498, upload-time = "2026-07-28T11:09:12.016Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/f0/99fe6eb530c7ee9ee1faee48059eb8a6437f80c893a496b98a78864e0fc6/datasets-4.6.1-py3-none-any.whl", hash = "sha256:f53228e6dadc9f837037b1bf3051d7d8c054abbb3eb29f1f022926e08090e0da", size = 520667, upload-time = "2026-02-27T23:26:46.855Z" },
+    { url = "https://files.pythonhosted.org/packages/44/0b/98fc6eb83333508ca5f44c52b3e287ea8137a0ad582714e2cbc67a02154b/datasets-5.0.1-py3-none-any.whl", hash = "sha256:9fbf73688f8c18f7529b4fe592abd04015f81d1e58001e4bac73ffb2b39d7cc4", size = 559079, upload-time = "2026-07-28T11:09:10.266Z" },
 ]
 
 [[package]]
@@ -1169,6 +1169,7 @@ dependencies = [
     { name = "inspect-ai" },
     { name = "inspect-evals", version = "0.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "inspect-evals", version = "0.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "langdetect" },
     { name = "prime" },
     { name = "prime-sandboxes" },
     { name = "pydantic" },
@@ -1205,13 +1206,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bert-score", specifier = ">=0.3.13" },
-    { name = "datasets", specifier = ">=2.0" },
+    { name = "datasets", specifier = ">=5.0.1" },
     { name = "huggingface-hub", marker = "extra == 'comet'", specifier = ">=0.20" },
     { name = "inspect-ai" },
     { name = "inspect-evals" },
     { name = "inspect-harbor", marker = "python_full_version >= '3.12' and extra == 'harbor'" },
     { name = "inspect-sandboxes", marker = "python_full_version >= '3.12' and extra == 'sandboxes'" },
     { name = "instruction-following-eval", marker = "extra == 'ifeval'", git = "https://github.com/josejg/instruction_following_eval.git" },
+    { name = "langdetect", specifier = ">=1.0.9" },
     { name = "prime", specifier = ">=0.5.42" },
     { name = "prime-sandboxes", specifier = ">=0.2.16" },
     { name = "pydantic", specifier = ">=2.0" },
