@@ -43,7 +43,7 @@ def test_task_is_zero_shot_and_uses_validation_rows(tmp_path: Path) -> None:
     task = andersen_modernization(data_path=str(path))
     assert len(task.dataset) == 1
     assert len(task.solver) == 1
-    assert [scorer.__registry_info__.name for scorer in task.scorer] == [
+    assert [scorer.__registry_info__.name.rsplit("/", 1)[-1] for scorer in task.scorer] == [
         "gleu",
         "chrf3pp",
     ]
