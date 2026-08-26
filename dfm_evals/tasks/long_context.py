@@ -36,11 +36,12 @@ MODEL_CONTEXT_TOKENS = 8192
 # against the exact HF tokenizer and deployed chat template by
 # scripts/prepare_long_context_eval_cache.py.
 CHAT_TEMPLATE_OVERHEAD_TOKENS = 2600
-PREPARED_CACHE_VERSION = "v8"
+PREPARED_CACHE_VERSION = "v9"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PREPARED_CACHE_ROOT = Path(
     os.environ.get(
         "DFM_EVAL_CACHE_DIR",
-        "/work/dfm/HRM-Text/data/eval_cache/long_context",
+        str(REPOSITORY_ROOT / "data/eval_cache/long_context"),
     )
 )
 LONGALIGN_DATASET = "zai-org/LongAlign-10k"
@@ -55,7 +56,7 @@ def _tokenizer():
 
     path = os.environ.get(
         "DFM_EVAL_TOKENIZER_PATH",
-        "/work/dfm/HRM-Text/data_io/trained_tokenizers/bpe/tokenizer.json",
+        str(REPOSITORY_ROOT / "data_io/trained_tokenizers/bpe/tokenizer.json"),
     )
     return Tokenizer.from_file(path)
 
@@ -136,9 +137,18 @@ def _samples_task(
     )
 
 
-def _prepared_cache_path(name: str, *, language: str | None = None, max_gen_toks: int = 512) -> Path:
+def _prepared_cache_path(
+    name: str,
+    *,
+    language: str | None = None,
+    max_examples: int = MAX_EXAMPLES,
+    max_gen_toks: int = 512,
+) -> Path:
     suffix = f"_{language}" if language else ""
-    return PREPARED_CACHE_ROOT / f"{PREPARED_CACHE_VERSION}_{name}{suffix}_gen{max_gen_toks}.jsonl"
+    capped_examples = min(max_examples, MAX_EXAMPLES)
+    return PREPARED_CACHE_ROOT / (
+        f"{PREPARED_CACHE_VERSION}_{name}{suffix}_max{capped_examples}_gen{max_gen_toks}.jsonl"
+    )
 
 
 def _read_prepared_cache(path: Path) -> list[Sample] | None:
@@ -196,7 +206,9 @@ def longbench_en(
     max_gen_toks: int = 512,
 ) -> Task:
     """English LongBench/LongBench-E examples, capped at 5,000 rows."""
-    cache_path = _prepared_cache_path("longbench_en", max_gen_toks=max_gen_toks)
+    cache_path = _prepared_cache_path(
+        "longbench_en", max_examples=max_examples, max_gen_toks=max_gen_toks
+    )
     cached = _read_prepared_cache(cache_path)
     if cached is not None:
         return Task(
@@ -249,7 +261,12 @@ def longalign(
     max_gen_toks: int = 512,
 ) -> Task:
     """LongAlign instruction examples filtered by detected user language."""
-    cache_path = _prepared_cache_path("longalign", language=language, max_gen_toks=max_gen_toks)
+    cache_path = _prepared_cache_path(
+        "longalign",
+        language=language,
+        max_examples=max_examples,
+        max_gen_toks=max_gen_toks,
+    )
     cached = _read_prepared_cache(cache_path)
     if cached is not None:
         return Task(
