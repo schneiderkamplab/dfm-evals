@@ -20,6 +20,7 @@ REGISTRY_EXPORTS = {
     "coqa": "dfm_evals.tasks.gen5:coqa",
     "nq_open": "dfm_evals.tasks.gen5:nq_open",
     "triviaqa": "dfm_evals.tasks.gen5:triviaqa",
+    "drop": "dfm_evals.tasks.drop:drop",
     "mbpp": "dfm_evals.tasks.code4:mbpp",
     "humaneval_plus": "dfm_evals.tasks.code4:humaneval_plus",
     "mbpp_plus": "dfm_evals.tasks.code4:mbpp_plus",
