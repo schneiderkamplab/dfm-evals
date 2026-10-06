@@ -14,11 +14,10 @@ from zipfile import ZipFile
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.model import get_model
-from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import generate
 
-from dfm_evals.tasks.talemaader.prompts import JUDGE_INSTRUCTIONS_DA, JUDGE_TEMPLATE_DA
 from dfm_evals.tasks._sharding import shard_samples
+from dfm_evals.tasks.talemaader.scorer import model_graded_fact_v2
 
 DEFAULT_SPLIT = "test"
 DEFAULT_SPLIT_SEED = 4242
@@ -87,10 +86,7 @@ def _talemaader_task(
     return Task(
         dataset=dataset,
         solver=[generate(max_tokens=max_gen_toks)],
-        scorer=model_graded_fact(
-            template=JUDGE_TEMPLATE_DA,
-            instructions=JUDGE_INSTRUCTIONS_DA,
-            partial_credit=True,
+        scorer=model_graded_fact_v2(
             model=judge_model_spec,
             model_role=judge_model_role,
         ),
