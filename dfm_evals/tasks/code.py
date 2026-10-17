@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import anyio
+
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.scorer import (
@@ -61,7 +63,11 @@ def humaneval(
 
 
 @scorer(metrics=[accuracy(), stderr()])
-def verify_sanitized() -> Scorer:
+def verify_sanitized(max_concurrent_verifications: int = 2) -> Scorer:
+    if max_concurrent_verifications < 1:
+        raise ValueError("max_concurrent_verifications must be positive")
+    slots = anyio.Semaphore(max_concurrent_verifications)
+
     async def score(state: TaskState, target: Target) -> Score:
         answer = find_code(state.output.completion)
         if "\x00" in answer:
@@ -81,10 +87,13 @@ def verify_sanitized() -> Scorer:
         ]
 
         try:
-            result = await sandbox().exec(
-                cmd=["python", "-c", "".join(code)],
-                timeout=VERIFY_TIMEOUT,
-            )
+            # Queue before starting the execution timeout, independently of
+            # inference concurrency and the number of completed generations.
+            async with slots:
+                result = await sandbox().exec(
+                    cmd=["python", "-c", "".join(code)],
+                    timeout=VERIFY_TIMEOUT,
+                )
         except TimeoutError:
             result = ExecResult(False, 1, "", "Verification timed out.")
         except ValueError as exc:
