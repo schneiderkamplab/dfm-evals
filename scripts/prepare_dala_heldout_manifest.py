@@ -1,4 +1,5 @@
 """CPU-only discovery and exact producer-train/test exclusion for twenty languages."""
+import os
 import argparse
 from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor
@@ -12,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'dfm-evals'))
 from dfm_evals.tasks.dala_multilingual_heldout import ALL_LANGUAGES, LANGUAGES, pairs, sha256
 
-PRODUCER=Path('/work/mimir/DaLA')
+PRODUCER=Path(os.environ.get('DALA_ROOT', str(ROOT.parent / 'DaLA')))
 
 
 def normalized(text):
